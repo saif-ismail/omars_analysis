@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "omars-analysis"
+version = "0.1.2"
+description = ""
+authors = ["Mohammed Saif Ismail Hameed <saifismailh@gmail.com>"]
+readme = "README.md"
+packages = [{include = "omars_analysis"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+numpy = "^1.23.5"
+scipy = "^1.9.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
