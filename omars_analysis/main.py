@@ -192,11 +192,11 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
 
     return None
 
-if __name__ == '__main__':
-    file = np.loadtxt('omars_analysis/data/Laser_data.txt')
+# if __name__ == '__main__':
+#     file = np.loadtxt('omars_analysis/data/Laser_data.txt')
 
-    matz = file[:,:-1]
-    resp = file[:,[-1]]
+#     matz = file[:,:-1]
+#     resp = file[:,[-1]]
 
-    # output = get_omars_analysis(smat=matz, cy=resp, qheredity='y', iheredity='n', effects_to_drop=[], force_me=['4'])
-    output = get_omars_analysis(smat=matz, cy=resp, alpha=[0.05, 0.2, 0.2], qheredity='n', iheredity='n', effects_to_drop=[], full='y', force_me=['4'], user_limit_for_step_two=None)
+#     # output = get_omars_analysis(smat=matz, cy=resp, qheredity='y', iheredity='n', effects_to_drop=[], force_me=['4'])
+#     output = get_omars_analysis(smat=matz, cy=resp, alpha=[0.05, 0.2, 0.2], qheredity='n', iheredity='n', effects_to_drop=[], full='y', force_me=['4'], user_limit_for_step_two=None)
