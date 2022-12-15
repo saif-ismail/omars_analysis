@@ -5,8 +5,11 @@ import sys
 from scipy.stats import t
 from scipy.stats import f
 
-from omars_analysis.subset_selection import get_soe
-from omars_analysis.generate_model_matrix_heredity import create_model_matrix_heredity
+# from omars_analysis.subset_selection import get_soe
+# from omars_analysis.generate_model_matrix_heredity import create_model_matrix_heredity
+
+from subset_selection import get_soe
+from generate_model_matrix_heredity import create_model_matrix_heredity
 
 def hat_matrix(smat):
     hat = smat @ np.linalg.pinv(smat.T @ smat) @ smat.T
@@ -24,16 +27,14 @@ def create_quadratic_interactions(smat):
         soe_mat = np.ones((no_runs,1))
 
     # Interactions
-    all_interactions = []
     for combi in itertools.combinations(range(nf), 2):
         col = (smat[:,combi[0]]*smat[:,combi[1]]).reshape((no_runs,1))
         soe_mat = np.hstack((soe_mat, col))
-        all_interactions.append(str(combi[0]+1)+'_'+str(combi[1]+1))
 
     #centering (important for later functions)
     soe_mat = soe_mat - soe_mat.mean(axis=0)
 
-    return soe_mat[:,1:], all_interactions, quad_ix
+    return soe_mat[:,1:], quad_ix
 
 def code(smat):
     a = np.ones((smat.shape[0],1))
@@ -48,15 +49,9 @@ def code(smat):
        
     return a[:,1:]
 
-def get_omars_analysis(smat, cy, qheredity: str, iheredity: str, effects_to_drop: list, full='y'):
+def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.2, 0.2], qheredity: str='n', iheredity: str='n', effects_to_drop: list=[], full: str='y', force_me: list=[], user_limit_for_step_two=None):
 
-    # mat (numpy array) - design matrix
-    # cy (numpy array) - response (single response, the response will be centered in the function)
-    # qheredity (string) - 
-    # iheredity (string) - 
-    # full (string) - ('y', 'n'); n - only main effects selection
-    # effects_to_drop (list) - list of second order effects to be excluded, eg: ['1_1', '2_3']
-
+    i_start = datetime.datetime.now()
     mat = code(smat)
     no_runs, nf = mat.shape[0], mat.shape[1]
 
@@ -65,15 +60,19 @@ def get_omars_analysis(smat, cy, qheredity: str, iheredity: str, effects_to_drop
 
     # Calculate error variance
     intercept = np.ones((no_runs, 1))
-    mat_qi, all_interactions, quad_ix = create_quadratic_interactions(mat)
+    mat_qi, quad_ix = create_quadratic_interactions(mat)
     total_mat = np.hstack((np.hstack((intercept, mat)),mat_qi))
     
     new_error_variance_projection = np.identity(no_runs) - (total_mat @ np.linalg.pinv(total_mat))
     denominator = no_runs - np.linalg.matrix_rank(total_mat)
-    print('\nInitial error degrees of freedom - {}'.format(denominator))
+    print('\nInitial error degrees of freedom available - {}'.format(denominator))
+
+    if denominator == 0:
+        print('Analysis cannot continue due to lack of available degrees of freedom to estimate error variance')
+        sys.exit()
 
     new_variance = (cy.T @ new_error_variance_projection @ cy)/denominator
-    print('\nInitial estimate of error variance - {}'.format(float(new_variance)))
+    print('\nInitial estimate of error variance - {}'.format(round(float(new_variance),3)))
     
     s = np.sqrt(new_variance)
     
@@ -84,15 +83,17 @@ def get_omars_analysis(smat, cy, qheredity: str, iheredity: str, effects_to_drop
     vdiags = np.matrix.diagonal(np.linalg.inv(mat.T @ mat))
     svdiags = np.sqrt(vdiags).reshape(1,nf)
     tvalue = np.absolute(mebeta/(s*svdiags))
-    ttest = t.ppf(1 - (0.05/2), df=denominator)
+    ttest = t.ppf(1 - (alpha[0]/2), df=denominator)
     tcomp = tvalue/ttest
     
     indexrme = [i for i,x in enumerate(tcomp[0]) if (abs(x)>=1)] # index of active main effects    
     indexfme = [i for i,x in enumerate(tcomp[0]) if (abs(x)<1)] # index of inactive main effects
-    active = mat[:, indexrme]
-    inactive = mat[:, indexfme]
+    
     new_me = [str(g+1) for g in indexrme]
     print('\nActive main effects - {}'.format(new_me))
+    # p_values_ttest = [t.cdf(ttest,denominator)]
+    p_value_ttest = 1-t.cdf(tvalue,denominator)
+    print('\nThe p-values for double sided t-tests for main effects - {} (threshold alpha/2 = {})'.format(p_value_ttest[0], alpha[0]/2))
 
     if full == 'n':
         return None
@@ -100,12 +101,31 @@ def get_omars_analysis(smat, cy, qheredity: str, iheredity: str, effects_to_drop
     '''
     END OF STEP 1
     '''
+
+    # Force main effects in step two:
+    if len(force_me)>0:
+        print('\nForced main effect - {}'.format(force_me))
+        ix = [int(x) for x in force_me]
+        for x in ix:
+            if x-1 in indexrme:
+                pass
+            elif x-1 in indexfme:
+                indexrme.append(x-1)
+
+    indexrme.sort()
+    indexfme = [x for x in range(nf) if x not in indexrme]
+    inactive = mat[:, indexfme]
+
     # Update error variance
-    new_variance_projection_updated = new_error_variance_projection + hat_matrix(inactive)
+    if len(indexfme)>0:
+        inactive_proj = hat_matrix(inactive)
+    else:
+        inactive_proj = np.zeros((no_runs, no_runs))
+    new_variance_projection_updated = new_error_variance_projection + inactive_proj
     numerator = cy.T @ new_variance_projection_updated @ cy
     new_denominator = denominator + len(indexfme)
     new_variance = numerator/new_denominator
-    print('\nUpdated estimate of error variance - {}'.format(float(new_variance)))
+    print('\nUpdated estimate of error variance taking into account inactive main effects- {}'.format(round(float(new_variance),3)))
     
     '''
     ANALYSIS OF SOE (STEP 2)
@@ -117,30 +137,23 @@ def get_omars_analysis(smat, cy, qheredity: str, iheredity: str, effects_to_drop
     
     ####        F Test for second order effects
     o_dfleft = np.linalg.matrix_rank(mat_qi) # quadratics need to be centered in mat_qi
-    ftest = f.ppf(q= 1-0.2, dfn=o_dfleft, dfd=new_denominator)
+    ftest = f.ppf(q= 1-alpha[1], dfn=o_dfleft, dfd=new_denominator)
     F1 = (TSS/o_dfleft)/new_variance
     fcomp = F1/ftest
+    p_value_intial = 1-f.cdf(fcomp, o_dfleft, new_denominator)
+    print('\nThe p-value for the first F-test is {} (threshold alpha value - {})'.format(round(float(p_value_intial),3),alpha[1]))
     '''
     CREATE SECOND ORDER MATRIX WITH HEREDITY FOR ANALYSIS (WITHOUT INTERCEPT)
     '''
     if fcomp >= 1:
-        # standardize
+        # standardize columns
         std = 'n'
-        soe_mat2, my_dictionary_soe_single  = create_model_matrix_heredity(std, mat, mat_qi, quad_ix, active, inactive, indexrme, indexfme, qheredity, iheredity)
-        if len(effects_to_drop) > 0:
-            new_dict = {}
-            reduced_matrix_indices = []
-            ittr = 0
-            for keyz in my_dictionary_soe_single.items():
-                if keyz[0] in effects_to_drop:
-                    continue
-                else:
-                    reduced_matrix_indices.append(keyz[1])
-                    new_dict.update({keyz[0]:ittr})
-                    ittr += 1
-            soe_mat2 = soe_mat2[:,reduced_matrix_indices]
-            my_dictionary_soe_single = new_dict
-            
+        soe_mat2, my_dictionary_soe_single  = create_model_matrix_heredity(std, mat, quad_ix, indexrme, indexfme, qheredity, iheredity)
+        
+        ix_del = [my_dictionary_soe_single[x] for x in effects_to_drop]
+        soe_mat2 = np.delete(soe_mat2, ix_del, axis=1)
+        new_names = [x for x in my_dictionary_soe_single.keys() if x not in effects_to_drop]
+        my_dictionary_soe_single = {new_names[i]:i for i in range(len(new_names))}
         
         # if quadratic_special_coding == 'y':
         #     relevant_q = []
@@ -154,11 +167,9 @@ def get_omars_analysis(smat, cy, qheredity: str, iheredity: str, effects_to_drop
         #         temp_mat = np.square(temp_mat) # square
         #         temp_mat = code(temp_mat) # normalize
         #         soe_mat2[:,0:len(relevant_q)] = temp_mat.copy()
+        active_soe, p_value_omars = get_soe(mat, o_dfleft, soe_mat2, cy_second, new_denominator, new_variance, my_dictionary_soe_single, alpha_val=alpha[2], limit_for_step_two=user_limit_for_step_two)
 
-        i_start = datetime.datetime.now()
-        active_soe, p_value_omars = get_soe(mat, o_dfleft, soe_mat2, cy_second, new_denominator, new_variance, my_dictionary_soe_single)
-        i_finish = datetime.datetime.now()
-        timing = str((i_finish - i_start).total_seconds())
+        print('\nThe p-value for the final F-test is {} (threshold alpha value - {})'.format(round(p_value_omars,3), alpha[2]))
     else:
         active_soe = []
         p_value_omars = np.nan
@@ -175,4 +186,17 @@ def get_omars_analysis(smat, cy, qheredity: str, iheredity: str, effects_to_drop
     print('\nActive interaction effects - {}'.format(new_ie))
     print('\nActive quadratic effects - {}'.format(new_qe))
 
-    return p_value_omars
+    i_finish = datetime.datetime.now()
+    timing = (i_finish - i_start).total_seconds()
+    print('\nAnalysis performed in {} seconds'.format(round(timing,3)))
+
+    return None
+
+if __name__ == '__main__':
+    file = np.loadtxt('omars_analysis/data/Laser_data.txt')
+
+    matz = file[:,:-1]
+    resp = file[:,[-1]]
+
+    # output = get_omars_analysis(smat=matz, cy=resp, qheredity='y', iheredity='n', effects_to_drop=[], force_me=['4'])
+    output = get_omars_analysis(smat=matz, cy=resp, alpha=[0.05, 0.2, 0.2], qheredity='n', iheredity='n', effects_to_drop=[], full='y', force_me=['4'], user_limit_for_step_two=None)

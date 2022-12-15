@@ -11,21 +11,38 @@ def get_key(val, x):
     return "key doesn't exist"
 
 
-
-
-def get_soe(mat, limit_for_soe_subset, soe_mat2, cy_second, denominator, new_variance, my_dictionary_soe_single):  
+def get_soe(mat, limit_for_soe_subset, soe_mat2, cy_second, denominator, new_variance, my_dictionary_soe_single, alpha_val=0.2, limit_for_step_two=None):  
+    nf = mat.shape[1]
+    total_soe_terms = nf*(nf+1)/2 
+    
     # List of active SOE terms
     active_soe = []
 
-    dfleft = limit_for_soe_subset
+    dfleft = limit_for_soe_subset # rank of all second order terms matrix
 
     actual_soe_df = np.linalg.matrix_rank(soe_mat2)
-    N_by_4 = int(mat.shape[0]/4)
-    if soe_mat2.shape[1] <= limit_for_soe_subset or actual_soe_df <= N_by_4:
-        dummy5 = actual_soe_df
-    else:
-        dummy5 = N_by_4
 
+    if limit_for_step_two != None: # user specified
+        if limit_for_step_two <= actual_soe_df:
+            dummy5 = limit_for_step_two
+        else:
+            dummy5 = actual_soe_df
+        print('\nLimit on the number of terms for subset selection - {} (user specified)'.format(limit_for_step_two))
+    else:
+        if total_soe_terms == limit_for_soe_subset:
+            dummy5 = limit_for_soe_subset
+            print('\nLimit on the number of terms for subset selection - {} (design can estimate all second order terms)'.format(dummy5))
+        else:
+            N_by_4 = int(mat.shape[0]/4)
+            if actual_soe_df <= N_by_4:
+                dummy5 = actual_soe_df
+                print('\nLimit on terms for subset selection - {} (rank of specified second order model matrix)'.format(dummy5))
+            else:
+                dummy5 = N_by_4
+                print('\nLimit on terms for subset selection - {} (run size divided by 4)'.format(dummy5))
+
+
+    print('\nRank of matrix with all {} second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)'.format(int(total_soe_terms), limit_for_soe_subset))
     # Skipped 'intercept' as response is centered
     
     ###################################################################
@@ -65,7 +82,7 @@ def get_soe(mat, limit_for_soe_subset, soe_mat2, cy_second, denominator, new_var
                 l_rss = resid
                 l_v_key = v_key
         dfleft -= 1
-        ftest = f.ppf(q= 1-0.2, dfn=(dfleft), dfd=denominator)
+        ftest = f.ppf(q= 1-alpha_val, dfn=(dfleft), dfd=denominator)
         F2 = (l_rss/(dfleft))/new_variance
         fcomp = F2/ftest
         fcomp = float(fcomp)
