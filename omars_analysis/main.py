@@ -5,11 +5,11 @@ import sys
 from scipy.stats import t
 from scipy.stats import f
 
-# from omars_analysis.subset_selection import get_soe
-# from omars_analysis.generate_model_matrix_heredity import create_model_matrix_heredity
+from omars_analysis.subset_selection import get_soe
+from omars_analysis.generate_model_matrix_heredity import create_model_matrix_heredity
 
-from subset_selection import get_soe
-from generate_model_matrix_heredity import create_model_matrix_heredity
+# from subset_selection import get_soe
+# from generate_model_matrix_heredity import create_model_matrix_heredity
 
 def hat_matrix(smat):
     hat = smat @ np.linalg.pinv(smat.T @ smat) @ smat.T
@@ -167,7 +167,7 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
         #         temp_mat = np.square(temp_mat) # square
         #         temp_mat = code(temp_mat) # normalize
         #         soe_mat2[:,0:len(relevant_q)] = temp_mat.copy()
-        active_soe, p_value_omars = get_soe(mat, o_dfleft, soe_mat2, cy_second, new_denominator, new_variance, my_dictionary_soe_single, alpha_val=alpha[2], limit_for_step_two=user_limit_for_step_two)
+        active_soe, p_value_omars, actual_soe_df, concluding_statement = get_soe(mat, o_dfleft, soe_mat2, cy_second, new_denominator, new_variance, my_dictionary_soe_single, alpha_val=alpha[2], limit_for_step_two=user_limit_for_step_two)
 
         print('\nThe p-value for the final F-test is {} (threshold alpha value - {})'.format(round(p_value_omars,3), alpha[2]))
     else:
@@ -189,6 +189,14 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
     i_finish = datetime.datetime.now()
     timing = (i_finish - i_start).total_seconds()
     print('\nAnalysis performed in {} seconds'.format(round(timing,3)))
+
+    print('\n=============================================================')
+    print('\nInformation on the limit of second order terms allowed to enter the model:')
+    print(concluding_statement)
+    print('Number of second order effects considered - {}'.format(soe_mat2.shape[1]))
+    print('Maximum number of second order terms jointly estimable of all the second order effects considered - {}'.format(actual_soe_df))
+    print('\nRank of matrix with all {} possible second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)\n'.format(mat_qi.shape[1], o_dfleft))
+    
 
     return None
 

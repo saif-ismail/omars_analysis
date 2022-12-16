@@ -12,7 +12,7 @@ Running the above command will make the function 'get_omars_analysis' available 
 
 ## Function usage
 
-The function requires six inputs:
+The function can be used with eight inputs (only the first two are required):
 
 - smat
   
@@ -31,7 +31,7 @@ The function requires six inputs:
   This is to specify heredity constraints for two-factor interaction effects. The accepted inputs are 's', 'w' or 'n' ('s'- strong heredity, 'w'- weak heredity, 'n'- no heredity). The input must be a string in lowercase. The default is 'n'.
 
 - alpha
-  Here tha three different alpha values can be specified (refer paper for mor information). The input must be a list of alpha values in float format. The default value for this parameter is [0.05, 0.2, 0.2].
+  Here the three different alpha values can be specified (refer paper for mor information). The input must be a list of alpha values in float format. The default value for this parameter is [0.05, 0.2, 0.2].
 
 - effects_to_drop
   
@@ -55,7 +55,10 @@ The function requires six inputs:
 
 - user_limit_for_step_two
   
-  The max limit on the number of second order effects to be fit can be specified using this parameter. The input should be an integer. The default value for this parameter is "None" and hence by default the limit is set to run size divided by four (refer paper).
+  The max limit on the number of second order effects to be fit can be specified using this parameter. The input should be an integer. The default value for this parameter is "None". If the user has specified a limit, then this limit will be considered, otherwise the limit on the terms is case dependent. More information is given below:
+  - No limit is set if all second order terms for all factors are jointly estimable.
+  - The limit is set to the number of second order terms specified using the heredity parameters (qheredity and iheredity), if this number is less than the maximum number of jointly estimable terms for all second order effects.
+  - Otherwise, the limit will be always set to run size divided by four (refer paper).
 
 ## Output
 

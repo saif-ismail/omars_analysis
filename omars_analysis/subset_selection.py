@@ -27,22 +27,20 @@ def get_soe(mat, limit_for_soe_subset, soe_mat2, cy_second, denominator, new_var
             dummy5 = limit_for_step_two
         else:
             dummy5 = actual_soe_df
-        print('\nLimit on the number of terms for subset selection - {} (user specified)'.format(limit_for_step_two))
+        concluding_statement = '\nLimit on the number of terms for subset selection - {} (user specified)'.format(limit_for_step_two)
     else:
         if total_soe_terms == limit_for_soe_subset:
             dummy5 = limit_for_soe_subset
-            print('\nLimit on the number of terms for subset selection - {} (design can estimate all second order terms)'.format(dummy5))
+            concluding_statement = '\nNo limit is set on the number of terms for subset selection since the design can estimate all second order terms'.format(dummy5)
         else:
             N_by_4 = int(mat.shape[0]/4)
-            if actual_soe_df <= N_by_4:
+            if soe_mat2.shape[1] <= limit_for_soe_subset or actual_soe_df <= N_by_4:
                 dummy5 = actual_soe_df
-                print('\nLimit on terms for subset selection - {} (rank of specified second order model matrix)'.format(dummy5))
+                print('\nLimit on terms for subset selection - {} (Maximum number of second order terms jointly estimable of all the second order effects considered)'.format(dummy5))
             else:
                 dummy5 = N_by_4
-                print('\nLimit on terms for subset selection - {} (run size divided by 4)'.format(dummy5))
-
-
-    print('\nRank of matrix with all {} second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)'.format(int(total_soe_terms), limit_for_soe_subset))
+                concluding_statement = '\nLimit on terms for subset selection - {} (run size divided by 4)'.format(dummy5)
+    
     # Skipped 'intercept' as response is centered
     
     ###################################################################
@@ -97,4 +95,4 @@ def get_soe(mat, limit_for_soe_subset, soe_mat2, cy_second, denominator, new_var
         for s in range(len(l_v_key)):
             active_soe.append(get_key(l_v_key[s], my_dictionary_soe_single))
 
-    return active_soe, p_value_omars
+    return active_soe, p_value_omars, actual_soe_df, concluding_statement
