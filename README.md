@@ -12,7 +12,7 @@ Running the above command will make the function 'get_omars_analysis' available 
 
 ## Function usage
 
-The function can be used with eight inputs (only the first two are required):
+The function can be used with nine inputs (only the first two are required):
 
 - smat
   

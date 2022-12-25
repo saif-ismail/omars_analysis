@@ -36,7 +36,7 @@ def get_soe(mat, limit_for_soe_subset, soe_mat2, cy_second, denominator, new_var
             N_by_4 = int(mat.shape[0]/4)
             if soe_mat2.shape[1] <= limit_for_soe_subset or actual_soe_df <= N_by_4:
                 dummy5 = actual_soe_df
-                print('\nLimit on terms for subset selection - {} (Maximum number of second order terms jointly estimable of all the second order effects considered)'.format(dummy5))
+                concluding_statement ='\nLimit on terms for subset selection - {} (Maximum number of second order terms jointly estimable of all the second order effects considered)'.format(dummy5)
             else:
                 dummy5 = N_by_4
                 concluding_statement = '\nLimit on terms for subset selection - {} (run size divided by 4)'.format(dummy5)
