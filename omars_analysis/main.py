@@ -192,30 +192,35 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
         else:
             new_ie.append(d)
 
-    print('\nActive interaction effects - {}'.format(new_ie))
-    print('\nActive quadratic effects - {}'.format(new_qe))
+    if len(new_ie+new_qe) >= 1:
+        print('\nActive interaction effects - {}'.format(new_ie))
+        print('\nActive quadratic effects - {}'.format(new_qe))
+        web_statements.append('\nActive interaction effects - {}'.format(new_ie))
+        web_statements.append('\nActive quadratic effects - {}'.format(new_qe))
+    else:
+        print('\nNo active second order effects detected')
+        web_statements.append('\nNo active second order effects detected')
 
-    web_statements.append('\nActive interaction effects - {}'.format(new_ie))
-    web_statements.append('\nActive quadratic effects - {}'.format(new_qe))
-    
     i_finish = datetime.datetime.now()
     timing = (i_finish - i_start).total_seconds()
     print('\nAnalysis performed in {} seconds'.format(round(timing,3)))
 
-    print('\n=============================================================')
-    print('\nInformation on the limit of second order terms allowed to enter the model:')
-    print(concluding_statement)
-    print('Number of second order effects considered - {}'.format(soe_mat2.shape[1]))
-    print('Maximum number of second order terms jointly estimable of all the second order effects considered - {}'.format(actual_soe_df))
-    print('\nRank of matrix with all {} possible second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)\n'.format(mat_qi.shape[1], o_dfleft))
-    
     web_statements.append('\nAnalysis performed in {} seconds'.format(round(timing,3)))
-    web_statements.append('\n=============================================================')
-    web_statements.append(concluding_statement)
-    web_statements.append('Number of second order effects considered - {}'.format(soe_mat2.shape[1]))
-    web_statements.append('Maximum number of second order terms jointly estimable of all the second order effects considered - {}'.format(actual_soe_df))
-    web_statements.append('\nRank of matrix with all {} possible second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)\n'.format(mat_qi.shape[1], o_dfleft))
-    
+
+    if fcomp >= 1:
+        print('\n=============================================================')
+        print('\nInformation on the limit of second order terms allowed to enter the model:')
+        print(concluding_statement)
+        print('Number of second order effects considered - {}'.format(soe_mat2.shape[1]))
+        print('Maximum number of second order terms jointly estimable of all the second order effects considered - {}'.format(actual_soe_df))
+        print('\nRank of matrix with all {} possible second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)\n'.format(mat_qi.shape[1], o_dfleft))
+        
+        web_statements.append('\n=============================================================')
+        web_statements.append('Number of second order effects considered - {}'.format(soe_mat2.shape[1]))
+        web_statements.append(concluding_statement)
+        web_statements.append('Maximum number of second order terms jointly estimable of all the second order effects considered - {}'.format(actual_soe_df))
+        web_statements.append('\nRank of matrix with all {} possible second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)\n'.format(mat_qi.shape[1], o_dfleft))
+
     return web_statements
 
 # if __name__ == '__main__':
