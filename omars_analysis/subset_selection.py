@@ -87,7 +87,7 @@ def get_soe(mat, limit_for_soe_subset, soe_mat2, cy_second, denominator, new_var
         if m == soe_mat2.shape[1] or fcomp < 1:
             break
 
-    p_value_omars = 1-scipy.stats.f.cdf(fcomp, dfleft, denominator)
+    p_value_omars = 1-scipy.stats.f.cdf(F2, dfleft, denominator)
     
     if m == 1:
         active_soe.append(get_key(l_v_key, my_dictionary_soe_single))

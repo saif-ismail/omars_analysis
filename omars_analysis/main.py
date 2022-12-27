@@ -147,7 +147,7 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
     ftest = f.ppf(q= 1-alpha[1], dfn=o_dfleft, dfd=new_denominator)
     F1 = (TSS/o_dfleft)/new_variance
     fcomp = F1/ftest
-    p_value_intial = 1-f.cdf(fcomp, o_dfleft, new_denominator)
+    p_value_intial = 1-f.cdf(F1, o_dfleft, new_denominator)
     print('\nThe p-value for the first F-test is {} (threshold alpha value - {})'.format(round(float(p_value_intial),3),alpha[1]))
     web_statements.append('\nThe p-value for the first F-test is {} (threshold alpha value - {})'.format(round(float(p_value_intial),3),alpha[1]))
     '''
