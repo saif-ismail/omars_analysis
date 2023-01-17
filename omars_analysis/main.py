@@ -93,13 +93,13 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
     indexrme = [i for i,x in enumerate(tcomp[0]) if (abs(x)>=1)] # index of active main effects    
     indexfme = [i for i,x in enumerate(tcomp[0]) if (abs(x)<1)] # index of inactive main effects
     
-    new_me = [str(g+1) for g in indexrme]
+    new_me = [g+1 for g in indexrme]
     print('\nActive main effects - {}'.format(new_me))
     web_statements.append('\nActive main effects - {}'.format(new_me))
     # p_values_ttest = [t.cdf(ttest,denominator)]
     p_value_ttest = 1-t.cdf(tvalue,denominator)
     print('\nThe p-values for double sided t-tests for main effects - {} (threshold alpha/2 = {})'.format(p_value_ttest[0], alpha[0]/2))
-    web_statements.append('\nThe p-values for double sided t-tests for main effects - {} (threshold alpha/2 = {})'.format(p_value_ttest[0], alpha[0]/2))
+    web_statements.append(list(np.round(p_value_ttest[0]*2,5)))
 
     if full == 'n':
         return web_statements
