@@ -72,7 +72,8 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
 
     if denominator == 0:
         print('Analysis cannot continue due to lack of available degrees of freedom to estimate error variance')
-        sys.exit()
+        web_statements.append('Analysis cannot continue due to lack of available degrees of freedom to estimate error variance')
+        return web_statements
 
     new_variance = (cy.T @ new_error_variance_projection @ cy)/denominator
     print('\nInitial estimate of error variance - {}'.format(round(float(new_variance),3)))
