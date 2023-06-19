@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "omars-analysis"
-version = "1.0.8"
+version = "2.0.0"
 description = ""
 authors = ["Mohammed Saif Ismail Hameed <saifismailh@gmail.com>"]
 readme = "README.md"

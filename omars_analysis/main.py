@@ -51,7 +51,7 @@ def code(smat):
 
 def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.2, 0.2], qheredity: str='n', iheredity: str='n', effects_to_drop: list=[], full: str='y', force_me: list=[], user_limit_for_step_two=None):
     
-    web_statements=[]
+    collect_outputs = {}
 
     i_start = datetime.datetime.now()
     mat = code(smat)
@@ -67,19 +67,20 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
     
     new_error_variance_projection = np.identity(no_runs) - (total_mat @ np.linalg.pinv(total_mat))
     denominator = no_runs - np.linalg.matrix_rank(total_mat)
-    print('\nInitial error degrees of freedom available - {}'.format(denominator))
-    web_statements.append('\nInitial error degrees of freedom available - {}'.format(denominator))
+    
+    # print('\nInitial error degrees of freedom available - {}'.format(denominator))
+    # web_statements.append('\nInitial error degrees of freedom available - {}'.format(denominator))
 
     if denominator == 0:
-        print('Analysis cannot continue due to lack of available degrees of freedom to estimate error variance')
-        web_statements.append('Analysis cannot continue due to lack of available degrees of freedom to estimate error variance')
-        return web_statements
+        collect_outputs['success'] = False
+        return collect_outputs
+
+    collect_outputs['success'] = True
+    collect_outputs['initial_df'] = denominator.copy()
 
     new_variance = (cy.T @ new_error_variance_projection @ cy)/denominator
-    print('\nInitial estimate of error variance - {}'.format(round(float(new_variance),3)))
-    web_statements.append('\nInitial estimate of error variance - {}'.format(round(float(new_variance),3)))
-    
     s = np.sqrt(new_variance)
+    collect_outputs['initial_rmse'] = round(float(s),3)
     
     '''
     ANALYSIS OF ME (STEP 1)
@@ -95,15 +96,16 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
     indexfme = [i for i,x in enumerate(tcomp[0]) if (abs(x)<1)] # index of inactive main effects
     
     new_me = [g+1 for g in indexrme]
-    print('\nActive main effects - {}'.format(new_me))
-    web_statements.append('\nActive main effects - {}'.format(new_me))
+
+    collect_outputs['active_me'] = new_me
+
     # p_values_ttest = [t.cdf(ttest,denominator)]
     p_value_ttest = 1-t.cdf(tvalue,denominator)
-    print('\nThe p-values for double sided t-tests for main effects - {} (threshold alpha/2 = {})'.format(p_value_ttest[0], alpha[0]/2))
-    web_statements.append(list(np.round(p_value_ttest[0]*2,5)))
+
+    collect_outputs['me_p_values'] = list(np.round(p_value_ttest[0]*2,5))
 
     if full == 'n':
-        return web_statements
+        return collect_outputs
     
     '''
     END OF STEP 1
@@ -111,8 +113,6 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
 
     # Force main effects in step two:
     if len(force_me)>0:
-        print('\nForced main effect - {}'.format(force_me))
-        web_statements.append('\nForced main effect - {}'.format(force_me))
         ix = [int(x) for x in force_me]
         for x in ix:
             if x-1 in indexrme:
@@ -133,8 +133,8 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
     numerator = cy.T @ new_variance_projection_updated @ cy
     new_denominator = denominator + len(indexfme)
     new_variance = numerator/new_denominator
-    print('\nUpdated estimate of error variance taking into account inactive main effects- {}'.format(round(float(new_variance),3)))
-    web_statements.append('\nUpdated estimate of error variance taking into account inactive main effects- {}'.format(round(float(new_variance),3)))
+
+    collect_outputs['updated_rmse'] = round(float(np.sqrt(new_variance)),3)
     '''
     ANALYSIS OF SOE (STEP 2)
     '''
@@ -149,12 +149,15 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
     F1 = (TSS/o_dfleft)/new_variance
     fcomp = F1/ftest
     p_value_intial = 1-f.cdf(F1, o_dfleft, new_denominator)
-    print('\nThe p-value for the first F-test is {} (threshold alpha value - {})'.format(round(float(p_value_intial),3),alpha[1]))
-    web_statements.append('\nThe p-value for the first F-test is {} (threshold alpha value - {})'.format(round(float(p_value_intial),3),alpha[1]))
+
+    collect_outputs['p_value_initial_f_test'] = round(float(p_value_intial),3)
+    # print('\nThe p-value for the first F-test is {} (threshold alpha value - {})'.format(round(float(p_value_intial),3),alpha[1]))
+    # web_statements.append('\nThe p-value for the first F-test is {} (threshold alpha value - {})'.format(round(float(p_value_intial),3),alpha[1]))
     '''
     CREATE SECOND ORDER MATRIX WITH HEREDITY FOR ANALYSIS (WITHOUT INTERCEPT)
     '''
     if fcomp >= 1:
+        collect_outputs['active_soe'] = True
         # standardize columns
         std = 'n'
         soe_mat2, my_dictionary_soe_single  = create_model_matrix_heredity(std, mat, quad_ix, indexrme, indexfme, qheredity, iheredity)
@@ -178,8 +181,9 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
         #         soe_mat2[:,0:len(relevant_q)] = temp_mat.copy()
         active_soe, p_value_omars, actual_soe_df, concluding_statement = get_soe(mat, o_dfleft, soe_mat2, cy_second, new_denominator, new_variance, my_dictionary_soe_single, alpha_val=alpha[2], limit_for_step_two=user_limit_for_step_two)
 
-        print('\nThe p-value for the final F-test is \n {} (threshold alpha value - {})'.format(round(p_value_omars,3), alpha[2]))
-        web_statements.append('\nThe p-value for the final F-test is \n {} (threshold alpha value - {})'.format(round(p_value_omars,3), alpha[2]))
+        collect_outputs['p_value_final_f_test'] = round(p_value_omars,3)
+        # print('\nThe p-value for the final F-test is \n {} (threshold alpha value - {})'.format(round(p_value_omars,3), alpha[2]))
+        # web_statements.append('\nThe p-value for the final F-test is \n {} (threshold alpha value - {})'.format(round(p_value_omars,3), alpha[2]))
     else:
         active_soe = []
         p_value_omars = np.nan
@@ -194,35 +198,42 @@ def get_omars_analysis(smat: np.ndarray, cy: np.ndarray, alpha: list = [0.05, 0.
             new_ie.append(d)
 
     if len(new_ie+new_qe) >= 1:
-        print('\nActive interaction effects - {}'.format(new_ie))
-        print('\nActive quadratic effects - {}'.format(new_qe))
-        web_statements.append('\nActive interaction effects - {}'.format(new_ie))
-        web_statements.append('\nActive quadratic effects - {}'.format(new_qe))
+        collect_outputs['active_ie'] = new_ie
+        collect_outputs['active_qe'] = new_qe
+        # print('\nActive interaction effects - {}'.format(new_ie))
+        # print('\nActive quadratic effects - {}'.format(new_qe))
+        # web_statements.append('\nActive interaction effects - {}'.format(new_ie))
+        # web_statements.append('\nActive quadratic effects - {}'.format(new_qe))
     else:
-        print('\nNo active second order effects detected')
-        web_statements.append('\nNo active second order effects detected')
+        collect_outputs['active_soe'] = False
+        # print('\nNo active second order effects detected')
+        # web_statements.append('\nNo active second order effects detected')
 
     i_finish = datetime.datetime.now()
     timing = (i_finish - i_start).total_seconds()
-    print('\nAnalysis performed in {} seconds'.format(round(timing,3)))
 
-    web_statements.append('\nAnalysis performed in {} seconds'.format(round(timing,3)))
+    collect_outputs['analysis_time'] = round(timing,3)
+    # print('\nAnalysis performed in {} seconds'.format(round(timing,3)))
+    # web_statements.append('\nAnalysis performed in {} seconds'.format(round(timing,3)))
 
     if fcomp >= 1:
-        print('\n=============================================================')
-        print('\nInformation on the limit of second order terms allowed to enter the model:')
-        print(concluding_statement)
-        print('Number of second order effects considered - {}'.format(soe_mat2.shape[1]))
-        print('Maximum number of second order terms jointly estimable of all the second order effects considered - {}'.format(actual_soe_df))
-        print('\nRank of matrix with all {} possible second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)\n'.format(mat_qi.shape[1], o_dfleft))
+        rank_statements = []
+        # print('\n=============================================================')
+        # print('\nInformation on the limit of second order terms allowed to enter the model:')
+        # print(concluding_statement)
+        # print('Number of second order effects considered - {}'.format(soe_mat2.shape[1]))
+        # print('Maximum number of second order terms jointly estimable of all the second order effects considered - {}'.format(actual_soe_df))
+        # print('\nRank of matrix with all {} possible second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)\n'.format(mat_qi.shape[1], o_dfleft))
         
-        web_statements.append('\n=============================================================')
-        web_statements.append('Number of second order effects considered - {}'.format(soe_mat2.shape[1]))
-        web_statements.append(concluding_statement)
-        web_statements.append('Maximum number of second order terms jointly estimable of all the second order effects considered - {}'.format(actual_soe_df))
-        web_statements.append('\nRank of matrix with all {} possible second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)\n'.format(mat_qi.shape[1], o_dfleft))
+        rank_statements.append('\n=============================================================')
+        rank_statements.append('Number of second order effects considered - {}'.format(soe_mat2.shape[1]))
+        rank_statements.append(concluding_statement)
+        rank_statements.append('Maximum number of second order terms jointly estimable of all the second order effects considered - {}'.format(actual_soe_df))
+        rank_statements.append('\nRank of matrix with all {} possible second order terms is {} (in case the rank is less than the number of total second order terms, it is advisable to set a limit that is less than half of the rank)\n'.format(mat_qi.shape[1], o_dfleft))
 
-    return web_statements
+        collect_outputs['rank_statements'] = rank_statements
+
+    return collect_outputs
 
 # if __name__ == '__main__':
 #     file = np.loadtxt('omars_analysis/data/Laser_data.txt')
