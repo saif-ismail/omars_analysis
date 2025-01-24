@@ -14,46 +14,50 @@ Running the above command will make the function 'get_omars_analysis' available 
 
 The function can be used with nine inputs (only the first two are required):
 
-- smat
+- **smat**
   
-  the first input is the design matrix. This should be a numpy array. The design matrix need not be coded, however it must only consist of continuous variables. The function is meant to be used with designs that have all factors either with two levels or three levels per factor column. The design should **NOT** consist of headers. The design matrix should not consist of second order effects since this will be built internally in the function.
+  The first input is the design matrix. This should be a numpy array. The design matrix need not be coded, however it must only consist of continuous/quantitative variables. The design can have factor columns with either two or three levels. The design matrix should **NOT** consist of headers. The design matrix should not consist of any second-order effects since this will be built internally in the function.
 
-- cy
+- **cy**
   
-  This is the response. This should be a one dimensional column vector (1-D numpy).
+  This is the response variable. This should be a one dimensional column vector (1-D numpy).
 
-- qheredity
+- **qheredity**
   
-  This is to specify heredity constraints for quadratic effects. The accepted inputs are 'y' or 'n' ('y'- strong heredity, 'n'- no heredity, 'n'- No heredity). The input must be a string in lowercase. The default is 'n'.
+  This is to specify heredity constraints for quadratic effects. 
+  The accepted inputs are 'y' or 'n' ('y'- strong heredity, 'n'- no heredity, 'n'- No heredity). 
+  The input must be a string in lowercase. The default is 'n'.
 
-- iheredity
+- **iheredity**
   
-  This is to specify heredity constraints for two-factor interaction effects. The accepted inputs are 's', 'w' or 'n' ('s'- strong heredity, 'w'- weak heredity, 'n'- no heredity). The input must be a string in lowercase. The default is 'n'.
+  This is to specify heredity constraints for two-factor interaction effects. 
+  The accepted inputs are 's', 'w' or 'n' ('s'- strong heredity, 'w'- weak heredity, 'n'- no heredity). 
+  The input must be a string in lowercase. The default is 'n'.
 
-- alpha
-  Here the three different alpha values can be specified (refer paper for mor information). The input must be a list of alpha values in float format. The default value for this parameter is [0.05, 0.2, 0.2].
+- **alpha**
+  Here the three different alpha values can be specified (refer paper for more information). The input must be a list of alpha values in float format. The default value for this parameter is [0.05, 0.2, 0.2].
 
-- effects_to_drop
+- **effects_to_drop**
   
   This is to specify second order effects that must be excluded from the analysis. The input must be a list of strings. For example: ['1_1', '2_3']. This input specifies that the quadratic effect of the first factor and the interaction effect between factor two and three must be excluded from the second step of the analysis (subset selection). The default value for this parameter is an empty list.
 
-  Note: Entering interaction between factor one and two should be represented as '1_2' and not as '2_1'. The smaller factor number should always come first.
+  Note: The interaction between factor one and two should be represented as '1_2' and not as '2_1'. The smaller factor number should always come first.
 
-- full
+- **full**
   
   'n' -  analysis is performed on the main effects only
   
-  'y' - analysis is performed on the main effects and second order effects.
+  'y' - analysis is performed on the main effects and second-order effects.
 
   The default is set to 'y'
 
-- force_me
+- **force_me**
   
-  Here certain main effects can be forced into the model. This can be used in cases where a main effect is statistically insignificant but by only a small margin. Forcing such main effects into the model can have an impact in reducing the updated estimate of the error.
+  Here certain main effects can be forced into the model. This can be used in cases where a main effect is statistically insignificant but by only a small margin. Forcing such main effects into the model can have an impact in reducing the updated estimate of the error variance.
   
   The input can be defined as a list of string values corresponding to the factor number that is to be forced. eg: ['3', '4']. The default value for this parameter is an empty list.
 
-- user_limit_for_step_two
+- **user_limit_for_step_two**
   
   The max limit on the number of second order effects to be fit can be specified using this parameter. The input should be an integer. The default value for this parameter is "None". If the user has specified a limit, then this limit will be considered, otherwise the limit on the terms is case dependent. More information is given below:
   - No limit is set if all second order terms for all factors are jointly estimable.

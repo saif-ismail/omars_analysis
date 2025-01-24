@@ -39,11 +39,11 @@ def create_model_matrix_heredity(std, mat, quad_ix, indexrme, indexfme, qheredit
             else:
                 subtract = 1                
                 active_q = list(set(indexrme).intersection(quad_ix))
-                soe_mat2 = np.absolute(mat[:,active_q])
+                soe_mat2 = np.square(mat[:,active_q])
         else:
             # print('\nNo Heredity assumed for quadratic effects')
             subtract = 1
-            soe_mat2 = np.absolute(mat[:,quad_ix])
+            soe_mat2 = np.square(mat[:,quad_ix])
             for j in range(soe_mat2.shape[1]):
                 v_key = str(quad_ix[j]+1)+"_"+str(quad_ix[j]+1)
                 current_dictionary = {v_key: [quad_ix[j], quad_ix[j]]}
